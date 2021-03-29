@@ -9,10 +9,15 @@ library(lubridate)
 
 
 
-
-getRaw <- function () {
-    data <- googlesheets4::read_sheet('https://docs.google.com/spreadsheets/d/1fXlE794sSQntw8fd1bPKKja5l25ujphwb0QjAJaFazQ/edit#gid=0')
+getData <- function () {
     
+    sheets<-googlesheets4::gs4_find('IFTTT')
+    Data <<- c()
+    
+    for(id in sheets[,2]){
+    links <- paste("https://docs.google.com/spreadsheets/d/",id,"/edit#gid=0",sep = "")
+    for(link in links){
+    data <- googlesheets4::read_sheet(link,col_names = c('Date','Variable','Value'))
     data<-data %>% mutate('Day' = substring(Date, 1,14))
     data<-data %>% mutate('Time' = substring(Date, 19,25))
     
@@ -20,13 +25,17 @@ getRaw <- function () {
     data<- data %>% mutate('Time' = parse_date_time2(Time, orders = '%I:%M%p',tz = 'America/New_York'))
     data <- data %>% mutate('Time' = substring(Time, 12,19))
     data<-data %>% mutate('Daytime' = paste(Day,Time, sep = ' '))
-    
     data<-data %>% mutate('Daytime' = ymd_hms(Daytime))
+    data <- data %>% mutate('Outcome' = case_when(
+        Value >= 870 ~ "At Desk",
+        Value <= 869 ~ "Not at Desk"
+    ))
+    Data <<- rbind(Data,data)
+    }}
     
- 
-    }
+}
 
-data <- getRaw()
+getData()
 
 
 # Define UI for application that draws a histogram
@@ -38,15 +47,15 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
-            # sliderInput("bins",
-            #             "Number of bins:",
-            #             min = 1,
-            #             max = 50,
-            #             value = 30),
-            # plotOutput("distPlot_titanic"),
-            # radioButtons('class','Which passenger class would you like to view?',c('1','2','3')),
-            # plotOutput('Plot_by_class')
+            radioButtons('Day_select','Which Day would you like to view?',c('2021-03-29',
+                                                                     '2021-03-28',
+                                                                     '2021-03-27',
+                                                                     '2021-03-26',
+                                                                     '2021-03-25',
+                                                                     '2021-03-24',
+                                                                     '2021-03-23')),
             
+
         ),
         
         # Show a plot of the generated distribution
@@ -58,8 +67,10 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
+    filter_data <- reactive({Data %>%  filter(Day == input$Day_select)})
+    
     output$Time_plot <- renderPlot({
-        ggplot(data,aes(x = Daytime, y = Value))+
+        ggplot(filter_data(),aes(x = as.Date(Daytime), y = as.numeric(Value), color = Outcome))+
             geom_point()+
             labs(title = 'Light at Desk')+
             xlab('Light Res')})
@@ -69,6 +80,14 @@ server <- function(input, output) {
 
 # Run the application
 shinyApp(ui = ui, server = server)
+
+
+
+
+
+
+
+
 
 
 
