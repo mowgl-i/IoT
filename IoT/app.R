@@ -67,10 +67,10 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    filter_data <- reactive({Data %>%  filter(Day == input$Day_select)})
+    filter_data <- reactive({Data %>% mutate(Day = as.factor(Day)) %>% filter(Day == input$Day_select)})
     
     output$Time_plot <- renderPlot({
-        ggplot(filter_data(),aes(x = as.Date(Daytime), y = as.numeric(Value), color = Outcome))+
+        ggplot(filter_data(),aes(x = as_datetime(Daytime), y = as.numeric(Value), color = Outcome))+
             geom_point()+
             labs(title = 'Light at Desk')+
             xlab('Light Res')})
@@ -80,14 +80,5 @@ server <- function(input, output) {
 
 # Run the application
 shinyApp(ui = ui, server = server)
-
-
-
-
-
-
-
-
-
 
 
