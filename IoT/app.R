@@ -7,7 +7,7 @@ library(reactable)
 library(googlesheets4)
 library(lubridate)
 library(ggrepel)
-
+library(shinydashboard)
 
 
 getData <- function () {
@@ -37,10 +37,10 @@ getData <- function () {
 }
 
 getData()
-sleep_data <- read_csv("C:/Users/macia/Documents/MSIA-21/IoT/Amazon Health Data/Sleep/Sleep_Sessions_ddf09bef-af8c-4a5b-bbd9-6bed8faff4b3.csv")
+sleep_data <- read_csv("C:/Users/macia/Documents/MSIA-21/IoT/Amazon Health Data/Sleep/Sleep_Sessions_c48e25f2-17ed-41f7-9ccb-8d51c3ef7ce8.csv")
 sleep_dates <- lubridate::date(unique(sleep_data$`Date Of Sleep`))
 dates<-lubridate::date(unique(Data$Day))
-skin_temp <- read_csv("C:/Users/macia/Documents/MSIA-21/IoT/Amazon Health Data/Sleep/Skin_Temperature_13f1f3d5-f722-4ea5-89ea-78929a307892.csv")
+skin_temp <- read_csv("C:/Users/macia/Documents/MSIA-21/IoT/Amazon Health Data/Sleep/Skin_Temperature_7382f409-55ef-4a79-b355-a97caa737a55.csv")
 
 # Define UI for application that draws a histogram
 # ui <- fluidPage(
@@ -64,37 +64,40 @@ skin_temp <- read_csv("C:/Users/macia/Documents/MSIA-21/IoT/Amazon Health Data/S
 # )
 
 
-ui <- fluidPage(
-    navlistPanel(
-        id = "tabset",
-        "IoT Reactive: Measure of Screen Time",
-        tabPanel("Time at desk",
-                 mainPanel(
+ui <- dashboardPage(
+    dashboardHeader(title = "Mowgli's IOT data"),
+    dashboardSidebar(sidebarMenu(
+        menuItem('Desk Time', tabName = "Time_at_desk"),
+        menuItem('Sleep Time',tabName = "Time_Asleep"),
+        menuItem('Skin Temp', tabName = "Overall_Skin_Temperature")
+    )),
+    dashboardBody(
+    tabItems(
+        tabItem(tabName = "Time_at_desk",
+                    
                  radioButtons('Day_select','Which Day would you like to view?',dates),
-                 plotOutput('Time_plot')
-                 )
-                 ),
-        "IoT Reactive: Sleep Quality",
-         tabPanel("Time Asleep",mainPanel(
-            radioButtons('Sleep_select','Which Day would you like to view?',sleep_dates),
-            plotOutput('Sleep_Breakdown')
-             
-             
-             
-         )),
+                 plotOutput('Time_plot')),
+         tabItem(tabName = "Time_Asleep",
+            box(selectInput('Sleep_select','Which Day would you like to view?',sleep_dates)),
+            box(plotOutput('Sleep_Breakdown')),
+            fluidRow(
+            box(infoBoxOutput('total_sleep')),
+            box(infoBoxOutput('min_sleep')),
+            box(infoBoxOutput('max_sleep'))
+            )),
         
-        tabPanel("Overall Skin Temperature",
-                 mainPanel(
-                     plotOutput('Skin_temp')
-                 ))
+        tabItem(tabName = "Overall_Skin_Temperature",
+                 
+                     box(plotOutput('Skin_temp')))
+        )
     )
 )
 
 
 
 
-
 # Define server logic required to draw a histogram
+
 server <- function(input, output) {
     
     filter_data <- reactive({Data %>% mutate(Day = as.factor(Day)) %>% filter(Day == input$Day_select)})
@@ -132,6 +135,16 @@ server <- function(input, output) {
         
     })
     
+    output$total_sleep <- renderInfoBox({
+        infoBox("Average Sleep",value = round(mean(sleep_data$`Total Sleep Duration (msec)`/3600000),2))
+    })
+    
+    output$min_sleep <- renderInfoBox({
+        infoBox("Minimum Sleep",value = round(min(sleep_data$`Total Sleep Duration (msec)`/3600000),2))
+    })
+    output$max_sleep <- renderInfoBox({
+        infoBox("Maximum Sleep",value = round(max(sleep_data$`Total Sleep Duration (msec)`/3600000),2))
+    })
     
 }
 
