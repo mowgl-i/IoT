@@ -74,7 +74,7 @@ ui <- dashboardPage(
     dashboardBody(
     tabItems(
         tabItem(tabName = "Time_at_desk",
-                    
+
                  radioButtons('Day_select','Which Day would you like to view?',dates),
                  plotOutput('Time_plot')),
          tabItem(tabName = "Time_Asleep",
